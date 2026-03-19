@@ -2,29 +2,24 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle de Estoque</title>
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-
 <body>
   <div class="container">
-
-    <!-- TOPO -->
     <header class="topo">
       <div>
         <h1>Controle de Estoque</h1>
         <p class="subtitulo">Projeto de portfólio em HTML, CSS e JavaScript</p>
       </div>
 
-      <!-- BOTÃO TEMA -->
       <button id="btnTema" class="btn-secondary" type="button">
         🌙 Tema escuro
       </button>
     </header>
 
-    <!-- RESUMO -->
     <section class="resumo">
       <div class="card-resumo">
         <span>Produtos cadastrados</span>
@@ -42,131 +37,149 @@
       </div>
     </section>
 
-    <!-- FORM -->
     <section class="card">
       <h2>Adicionar produto</h2>
 
       <form id="formProduto" class="form-grid">
         <div class="campo">
-          <label>Nome</label>
-          <input id="nome" required />
+          <label for="nome">Nome do produto</label>
+          <input type="text" id="nome" placeholder="Ex: Teclado" required />
         </div>
 
         <div class="campo">
-          <label>Quantidade</label>
-          <input id="quantidade" type="number" required />
+          <label for="quantidade">Quantidade</label>
+          <input type="number" id="quantidade" min="0" step="1" placeholder="0" required />
         </div>
 
         <div class="campo">
-          <label>Valor</label>
-          <input id="valor" type="number" required />
+          <label for="valor">Valor unitário (R$)</label>
+          <input type="number" id="valor" min="0" step="0.01" placeholder="0.00" required />
         </div>
 
         <div class="campo">
-          <label>Movimentação</label>
+          <label for="movimentacao">Movimentação</label>
           <select id="movimentacao">
-            <option>Entrada</option>
-            <option>Saída</option>
-            <option>Ajuste</option>
+            <option value="Entrada">Entrada</option>
+            <option value="Saída">Saída</option>
+            <option value="Ajuste">Ajuste</option>
           </select>
         </div>
 
         <div class="campo campo-botao">
-          <button class="btn-primary">Adicionar</button>
+          <button type="submit" class="btn-primary">Adicionar produto</button>
         </div>
       </form>
     </section>
 
-    <!-- TABELA -->
     <section class="card">
       <div class="barra-filtros">
-        <input id="busca" placeholder="Buscar..." />
+        <input type="text" id="busca" placeholder="Buscar produto..." />
+
         <select id="ordenacao">
-          <option value="nome-asc">Nome</option>
+          <option value="nome-asc">Ordenar: Nome (A-Z)</option>
+          <option value="nome-desc">Nome (Z-A)</option>
+          <option value="quantidade-desc">Maior quantidade</option>
+          <option value="quantidade-asc">Menor quantidade</option>
+          <option value="valor-desc">Maior valor</option>
+          <option value="valor-asc">Menor valor</option>
         </select>
-        <button id="btnLimparEstoque" class="btn-danger">Limpar</button>
+
+        <button id="btnLimparEstoque" class="btn-danger" type="button">Limpar estoque</button>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Produto</th>
-            <th>Qtd</th>
-            <th>Valor</th>
-            <th>Total</th>
-            <th>Status</th>
-            <th>Mov</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="listaProdutos"></tbody>
-      </table>
+      <div class="tabela-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Quantidade</th>
+              <th>Valor unitário</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Movimentação</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="listaProdutos"></tbody>
+        </table>
+      </div>
     </section>
 
-    <!-- GRÁFICOS -->
     <section class="graficos">
       <div class="card">
-        <h2>Quantidade</h2>
+        <h2>Quantidade por produto</h2>
         <canvas id="graficoQuantidade"></canvas>
       </div>
 
       <div class="card">
-        <h2>Valor</h2>
+        <h2>Valor por produto</h2>
         <canvas id="graficoValor"></canvas>
       </div>
     </section>
 
-    <!-- HISTÓRICO -->
     <section class="card">
-      <h2>Histórico</h2>
+      <div class="historico-topo">
+        <h2>Histórico de movimentações</h2>
 
-      <div class="historico-acoes">
-        <button id="btnExportarCSV" class="btn-secondary">Exportar CSV</button>
-        <button id="btnApagarHistorico" class="btn-danger">Apagar</button>
+        <div class="historico-acoes">
+          <button id="btnExportarCSV" class="btn-secondary" type="button">Exportar CSV</button>
+          <button id="btnApagarHistorico" class="btn-danger" type="button">Apagar histórico</button>
+        </div>
       </div>
 
-      <ul id="listaHistorico"></ul>
+      <ul id="listaHistorico" class="lista-historico"></ul>
     </section>
-
   </div>
 
-  <!-- MODAL EDITAR -->
   <div id="modalEditar" class="modal-bg">
     <div class="modal">
-      <h2>Editar</h2>
+      <h2>Editar produto</h2>
 
-      <input id="editIndex" type="hidden"/>
+      <input type="hidden" id="editIndex" />
 
-      <input id="editNome"/>
-      <input id="editQuantidade" type="number"/>
-      <input id="editValor" type="number"/>
-      <select id="editMovimentacao">
-        <option>Entrada</option>
-        <option>Saída</option>
-        <option>Ajuste</option>
-      </select>
+      <div class="campo">
+        <label for="editNome">Nome do produto</label>
+        <input type="text" id="editNome" />
+      </div>
+
+      <div class="campo">
+        <label for="editQuantidade">Quantidade</label>
+        <input type="number" id="editQuantidade" min="0" step="1" />
+      </div>
+
+      <div class="campo">
+        <label for="editValor">Valor unitário (R$)</label>
+        <input type="number" id="editValor" min="0" step="0.01" />
+      </div>
+
+      <div class="campo">
+        <label for="editMovimentacao">Movimentação</label>
+        <select id="editMovimentacao">
+          <option value="Entrada">Entrada</option>
+          <option value="Saída">Saída</option>
+          <option value="Ajuste">Ajuste</option>
+        </select>
+      </div>
 
       <div class="modal-actions">
-        <button id="btnCancelarEdicao">Cancelar</button>
-        <button id="btnSalvarEdicao">Salvar</button>
+        <button id="btnCancelarEdicao" class="btn-secondary" type="button">Cancelar</button>
+        <button id="btnSalvarEdicao" class="btn-primary" type="button">Salvar alterações</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL CONFIRMAÇÃO -->
   <div id="modalConfirmacao" class="modal-bg">
     <div class="modal">
-      <h2 id="modalTitulo">Confirmar</h2>
+      <h2 id="modalTitulo">Confirmar ação</h2>
       <p id="modalMensagem">Tem certeza?</p>
 
       <div class="modal-actions">
-        <button id="btnCancelarAcao">Cancelar</button>
-        <button id="btnConfirmarAcao">Confirmar</button>
+        <button id="btnCancelarAcao" class="btn-secondary" type="button">Cancelar</button>
+        <button id="btnConfirmarAcao" class="btn-danger" type="button">Confirmar</button>
       </div>
     </div>
   </div>
 
-  <!-- TOAST -->
   <div id="toast" class="toast"></div>
 
   <script src="script.js"></script>
