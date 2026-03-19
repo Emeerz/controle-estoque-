@@ -301,7 +301,7 @@ function iniciarApp() {
   setTimeout(function () {
     loadingScreen.style.display = "none";
 
-    const logado = localStorage.getItem(STORAGE_LOGIN") === "true";
+    const logado = localStorage.getItem(STORAGE_LOGIN) === "true";
 
     if (logado) {
       abrirSistema();
