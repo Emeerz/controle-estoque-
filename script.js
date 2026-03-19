@@ -233,13 +233,40 @@ function exportarCSV() {
 function renderizarProdutos() {
   const tabelaEstoque = document.getElementById("tabelaEstoque");
   const campoBusca = document.getElementById("campoBusca");
+  const filtroProdutos = document.getElementById("filtroProdutos");
+
   const busca = campoBusca ? campoBusca.value.toLowerCase().trim() : "";
+  const tipoFiltro = filtroProdutos ? filtroProdutos.value : "todos";
 
   tabelaEstoque.innerHTML = "";
 
-  const produtosFiltrados = produtos.filter((produto) =>
+  let produtosFiltrados = produtos.filter((produto) =>
     produto.nome.toLowerCase().includes(busca)
   );
+
+  if (tipoFiltro === "nome") {
+    produtosFiltrados.sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+
+  if (tipoFiltro === "maiorQuantidade") {
+    produtosFiltrados.sort(
+      (a, b) => converterNumero(b.quantidade) - converterNumero(a.quantidade)
+    );
+  }
+
+  if (tipoFiltro === "menorQuantidade") {
+    produtosFiltrados.sort(
+      (a, b) => converterNumero(a.quantidade) - converterNumero(b.quantidade)
+    );
+  }
+
+  if (tipoFiltro === "maiorValor") {
+    produtosFiltrados.sort((a, b) => {
+      const totalA = converterNumero(a.quantidade) * converterNumero(a.valor);
+      const totalB = converterNumero(b.quantidade) * converterNumero(b.valor);
+      return totalB - totalA;
+    });
+  }
 
   if (produtosFiltrados.length === 0) {
     tabelaEstoque.innerHTML = `
