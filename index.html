@@ -35,7 +35,22 @@
     </section>
 
     <section class="acoes-topo">
-      <input type="text" id="campoBusca" placeholder="Buscar produto..." oninput="renderizarProdutos()" />
+     <div class="controles-lista">
+  <input
+    type="text"
+    id="campoBusca"
+    placeholder="Buscar produto..."
+    oninput="renderizarProdutos()"
+  />
+
+  <select id="filtroProdutos" onchange="renderizarProdutos()">
+    <option value="todos">Todos</option>
+    <option value="nome">Nome (A-Z)</option>
+    <option value="maiorQuantidade">Maior quantidade</option>
+    <option value="menorQuantidade">Menor quantidade</option>
+    <option value="maiorValor">Maior valor em estoque</option>
+  </select>
+</div>
       <button class="btn-secundario" onclick="limparEstoque()">Limpar Estoque</button>
     </section>
 
