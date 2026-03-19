@@ -5,182 +5,158 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle de Estoque</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="container">
-    <header class="topo">
-      <div>
+  <!-- Loading inicial -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loader-card">
+      <div class="spinner"></div>
+      <h2>Carregando sistema...</h2>
+      <p>Aguarde um instante</p>
+    </div>
+  </div>
+
+  <!-- Tela de login -->
+  <section id="loginScreen" class="auth-screen hidden">
+    <div class="auth-card fade-up">
+      <div class="auth-header">
         <h1>Controle de Estoque</h1>
-        <p class="subtitulo">Projeto de portfólio em HTML, CSS e JavaScript</p>
+        <p>Faça login para acessar o sistema</p>
       </div>
 
-      <button id="btnTema" class="btn-secondary" type="button">
-        🌙 Tema escuro
-      </button>
-    </header>
-
-    <section class="resumo">
-      <div class="card-resumo">
-        <span>Produtos cadastrados</span>
-        <h3 id="totalProdutos">0</h3>
-      </div>
-
-      <div class="card-resumo">
-        <span>Total de unidades</span>
-        <h3 id="totalItens">0</h3>
-      </div>
-
-      <div class="card-resumo">
-        <span>Valor total em estoque</span>
-        <h3 id="valorTotal">R$ 0,00</h3>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Adicionar produto</h2>
-
-      <form id="formProduto" class="form-grid">
-        <div class="campo">
-          <label for="nome">Nome do produto</label>
-          <input type="text" id="nome" placeholder="Ex: Teclado" required />
+      <form id="loginForm" class="auth-form">
+        <div class="input-group">
+          <label for="username">Usuário</label>
+          <input
+            type="text"
+            id="username"
+            placeholder="Digite seu usuário"
+            autocomplete="username"
+            required
+          />
         </div>
 
-        <div class="campo">
-          <label for="quantidade">Quantidade</label>
-          <input type="number" id="quantidade" min="0" step="1" placeholder="0" required />
+        <div class="input-group">
+          <label for="password">Senha</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="Digite sua senha"
+            autocomplete="current-password"
+            required
+          />
         </div>
 
-        <div class="campo">
-          <label for="valor">Valor unitário (R$)</label>
-          <input type="number" id="valor" min="0" step="0.01" placeholder="0.00" required />
-        </div>
-
-        <div class="campo">
-          <label for="movimentacao">Movimentação</label>
-          <select id="movimentacao">
-            <option value="Entrada">Entrada</option>
-            <option value="Saída">Saída</option>
-            <option value="Ajuste">Ajuste</option>
-          </select>
-        </div>
-
-        <div class="campo campo-botao">
-          <button type="submit" class="btn-primary">Adicionar produto</button>
-        </div>
+        <button type="submit" class="btn btn-primary btn-full">Entrar</button>
+        <p class="auth-tip">Usuário padrão: <strong>admin</strong> | Senha: <strong>1234</strong></p>
+        <p id="loginMessage" class="message"></p>
       </form>
-    </section>
+    </div>
+  </section>
 
-    <section class="card">
-      <div class="barra-filtros">
-        <input type="text" id="busca" placeholder="Buscar produto..." />
+  <!-- Sistema -->
+  <main id="appScreen" class="app hidden">
+    <aside class="sidebar">
+      <div>
+        <div class="brand">
+          <div class="brand-icon">📦</div>
+          <div>
+            <h2>Estoque Pro</h2>
+            <p>Sistema local</p>
+          </div>
+        </div>
 
-        <select id="ordenacao">
-          <option value="nome-asc">Ordenar: Nome (A-Z)</option>
-          <option value="nome-desc">Nome (Z-A)</option>
-          <option value="quantidade-desc">Maior quantidade</option>
-          <option value="quantidade-asc">Menor quantidade</option>
-          <option value="valor-desc">Maior valor</option>
-          <option value="valor-asc">Menor valor</option>
-        </select>
+        <div class="sidebar-section">
+          <p class="sidebar-title">Resumo</p>
+          <div class="mini-card">
+            <span>Total de produtos</span>
+            <strong id="totalProdutos">0</strong>
+          </div>
+          <div class="mini-card">
+            <span>Total em estoque</span>
+            <strong id="totalQuantidade">0</strong>
+          </div>
+          <div class="mini-card">
+            <span>Valor total</span>
+            <strong id="valorTotal">R$ 0,00</strong>
+          </div>
+        </div>
 
-        <button id="btnLimparEstoque" class="btn-danger" type="button">Limpar estoque</button>
-      </div>
-
-      <div class="tabela-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Quantidade</th>
-              <th>Valor unitário</th>
-              <th>Total</th>
-              <th>Status</th>
-              <th>Movimentação</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="listaProdutos"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="graficos">
-      <div class="card">
-        <h2>Quantidade por produto</h2>
-        <canvas id="graficoQuantidade"></canvas>
-      </div>
-
-      <div class="card">
-        <h2>Valor por produto</h2>
-        <canvas id="graficoValor"></canvas>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="historico-topo">
-        <h2>Histórico de movimentações</h2>
-
-        <div class="historico-acoes">
-          <button id="btnExportarCSV" class="btn-secondary" type="button">Exportar CSV</button>
-          <button id="btnApagarHistorico" class="btn-danger" type="button">Apagar histórico</button>
+        <div class="sidebar-section">
+          <p class="sidebar-title">Ações rápidas</p>
+          <button id="btnExportCsv" class="btn btn-secondary btn-full">Exportar CSV</button>
+          <label for="csvFile" class="btn btn-secondary btn-full file-label">Importar CSV</label>
+          <input type="file" id="csvFile" accept=".csv" hidden />
+          <button id="btnLimparTudo" class="btn btn-danger btn-full">Limpar tudo</button>
         </div>
       </div>
 
-      <ul id="listaHistorico" class="lista-historico"></ul>
+      <button id="logoutBtn" class="btn btn-outline btn-full">Sair</button>
+    </aside>
+
+    <section class="content">
+      <header class="topbar fade-down">
+        <div>
+          <h1>Controle de Estoque</h1>
+          <p>Gerencie seus produtos com rapidez</p>
+        </div>
+      </header>
+
+      <section class="card fade-up">
+        <div class="card-header">
+          <h3>Adicionar produto</h3>
+        </div>
+
+        <form id="productForm" class="form-grid">
+          <div class="input-group">
+            <label for="nome">Nome do produto</label>
+            <input type="text" id="nome" placeholder="Ex: Arroz 5kg" required />
+          </div>
+
+          <div class="input-group">
+            <label for="quantidade">Quantidade</label>
+            <input type="number" id="quantidade" placeholder="Ex: 10" min="0" required />
+          </div>
+
+          <div class="input-group">
+            <label for="valor">Valor unitário (R$)</label>
+            <input type="number" id="valor" placeholder="Ex: 24.90" min="0" step="0.01" required />
+          </div>
+
+          <div class="input-group action-group">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn btn-primary">Adicionar produto</button>
+          </div>
+        </form>
+
+        <p id="appMessage" class="message"></p>
+      </section>
+
+      <section class="card fade-up delay-1">
+        <div class="card-header table-header">
+          <h3>Produtos cadastrados</h3>
+          <input type="text" id="searchInput" class="search-input" placeholder="Pesquisar produto..." />
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Quantidade</th>
+                <th>Valor</th>
+                <th>Total</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="productTableBody">
+              <!-- preenchido via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
     </section>
-  </div>
-
-  <div id="modalEditar" class="modal-bg">
-    <div class="modal">
-      <h2>Editar produto</h2>
-
-      <input type="hidden" id="editIndex" />
-
-      <div class="campo">
-        <label for="editNome">Nome do produto</label>
-        <input type="text" id="editNome" />
-      </div>
-
-      <div class="campo">
-        <label for="editQuantidade">Quantidade</label>
-        <input type="number" id="editQuantidade" min="0" step="1" />
-      </div>
-
-      <div class="campo">
-        <label for="editValor">Valor unitário (R$)</label>
-        <input type="number" id="editValor" min="0" step="0.01" />
-      </div>
-
-      <div class="campo">
-        <label for="editMovimentacao">Movimentação</label>
-        <select id="editMovimentacao">
-          <option value="Entrada">Entrada</option>
-          <option value="Saída">Saída</option>
-          <option value="Ajuste">Ajuste</option>
-        </select>
-      </div>
-
-      <div class="modal-actions">
-        <button id="btnCancelarEdicao" class="btn-secondary" type="button">Cancelar</button>
-        <button id="btnSalvarEdicao" class="btn-primary" type="button">Salvar alterações</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="modalConfirmacao" class="modal-bg">
-    <div class="modal">
-      <h2 id="modalTitulo">Confirmar ação</h2>
-      <p id="modalMensagem">Tem certeza?</p>
-
-      <div class="modal-actions">
-        <button id="btnCancelarAcao" class="btn-secondary" type="button">Cancelar</button>
-        <button id="btnConfirmarAcao" class="btn-danger" type="button">Confirmar</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="toast" class="toast"></div>
+  </main>
 
   <script src="script.js"></script>
 </body>
