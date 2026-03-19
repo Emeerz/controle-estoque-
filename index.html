@@ -1,271 +1,66 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mercado Stock - Controle de Estoque</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mercado Stock</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div id="loadingScreen" class="loading-screen">
-    <div class="loading-box">
-      <div class="spinner"></div>
-      <h2>Carregando sistema...</h2>
-      <p>Preparando o painel do mercado</p>
-    </div>
-  </div>
 
-  <section id="loginScreen" class="screen hidden">
-    <div class="login-card">
-      <div class="login-top">
-        <h1>Mercado Stock</h1>
-        <p>Sistema de estoque e caixa</p>
-      </div>
+<div id="loadingScreen" class="loading">
+  <div class="spinner"></div>
+  <p>Carregando sistema...</p>
+</div>
 
-      <form id="loginForm" class="login-form">
-        <div class="field">
-          <label for="username">Usuário</label>
-          <input type="text" id="username" placeholder="Digite seu usuário" required />
-        </div>
+<div id="app" class="hidden">
 
-        <div class="field">
-          <label for="password">Senha</label>
-          <input type="password" id="password" placeholder="Digite sua senha" required />
-        </div>
+  <header>
+    <h1>🛒 Mercado Stock</h1>
+  </header>
 
-        <button type="submit" class="btn btn-primary">Entrar</button>
-      </form>
-
-      <p class="login-tip">Usuário: <strong>admin</strong> | Senha: <strong>1234</strong></p>
-      <p id="loginMessage" class="message"></p>
-    </div>
+  <section class="form">
+    <input id="nome" placeholder="Produto">
+    <input id="categoria" placeholder="Categoria">
+    <input id="quantidade" type="number" placeholder="Quantidade">
+    <input id="valor" type="number" placeholder="Preço">
+    <input id="codigo" placeholder="Código/NFC">
+    <input id="estoqueMinimo" type="number" placeholder="Estoque mínimo">
+    <button onclick="adicionar()">Adicionar</button>
   </section>
 
-  <div id="appScreen" class="app hidden">
-    <aside class="sidebar">
-      <div>
-        <div class="brand">
-          <div class="brand-icon">🛒</div>
-          <div>
-            <h2>Mercado Stock</h2>
-            <p>Painel do mercado</p>
-          </div>
-        </div>
+  <section class="resumo">
+    <p>Total Produtos: <strong id="totalProdutos">0</strong></p>
+    <p>Quantidade: <strong id="totalQuantidade">0</strong></p>
+    <p>Valor: <strong id="valorTotal">R$0</strong></p>
+  </section>
 
-        <nav class="menu">
-          <button class="menu-btn active">Estoque</button>
-          <button class="menu-btn" type="button">Produtos</button>
-          <button class="menu-btn" type="button">Relatórios</button>
-        </nav>
+  <section class="graficos">
+    <canvas id="graficoQuantidade"></canvas>
+    <canvas id="graficoValor"></canvas>
+  </section>
 
-        <div class="summary-card">
-          <h3>Resumo</h3>
-          <p>Total de produtos <strong id="totalProdutos">0</strong></p>
-          <p>Itens em estoque <strong id="totalQuantidade">0</strong></p>
-          <p>Valor total <strong id="valorTotal">R$ 0,00</strong></p>
-          <p>Baixo estoque <strong id="baixoEstoque">0</strong></p>
-        </div>
+  <section>
+    <table>
+      <thead>
+        <tr>
+          <th>Produto</th>
+          <th>Qtd</th>
+          <th>Preço</th>
+          <th>Total</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody id="tabela"></tbody>
+    </table>
+  </section>
 
-        <div class="sidebar-actions">
-          <button id="btnExportCsv" class="btn btn-secondary">Exportar CSV</button>
+</div>
 
-          <label for="csvFile" class="btn btn-secondary file-label">Importar CSV</label>
-          <input type="file" id="csvFile" accept=".csv" hidden />
-
-          <button id="btnLimparTudo" class="btn btn-danger">Limpar tudo</button>
-        </div>
-      </div>
-
-      <button id="logoutBtn" class="btn btn-outline">Sair</button>
-    </aside>
-
-    <main class="content">
-      <header class="topbar">
-        <div>
-          <h1>Controle de Estoque</h1>
-          <p>Gerencie produtos, valores, estoque e movimentações</p>
-        </div>
-      </header>
-
-      <section class="card">
-        <div class="section-header">
-          <h2>Cadastrar produto</h2>
-          <span class="badge">Tema claro</span>
-        </div>
-
-        <form id="productForm" class="product-form">
-          <div class="field">
-            <label for="nome">Nome do produto</label>
-            <input type="text" id="nome" placeholder="Ex: Arroz 5kg" required />
-          </div>
-
-          <div class="field">
-            <label for="categoria">Categoria</label>
-            <input type="text" id="categoria" placeholder="Ex: Mercearia" required />
-          </div>
-
-          <div class="field">
-            <label for="quantidade">Quantidade</label>
-            <input type="number" id="quantidade" min="0" placeholder="0" required />
-          </div>
-
-          <div class="field">
-            <label for="valor">Preço unitário</label>
-            <input type="number" id="valor" min="0" step="0.01" placeholder="0.00" required />
-          </div>
-
-          <div class="field">
-            <label for="codigo">Código / NFC</label>
-            <input type="text" id="codigo" placeholder="Ex: 789000111222" required />
-          </div>
-
-          <div class="field">
-            <label for="estoqueMinimo">Estoque mínimo</label>
-            <input type="number" id="estoqueMinimo" min="0" placeholder="5" required />
-          </div>
-
-          <div class="form-action">
-            <button type="submit" class="btn btn-primary">Adicionar produto</button>
-          </div>
-        </form>
-
-        <p id="appMessage" class="message"></p>
-      </section>
-
-      <section class="grid-cards">
-        <div class="card stat-card">
-          <h3>Produtos cadastrados</h3>
-          <strong id="statProdutos">0</strong>
-        </div>
-
-        <div class="card stat-card">
-          <h3>Quantidade total</h3>
-          <strong id="statQuantidade">0</strong>
-        </div>
-
-        <div class="card stat-card">
-          <h3>Patrimônio em estoque</h3>
-          <strong id="statValor">R$ 0,00</strong>
-        </div>
-
-        <div class="card stat-card alert-card">
-          <h3>Itens com baixo estoque</h3>
-          <strong id="statBaixoEstoque">0</strong>
-        </div>
-      </section>
-
-      <section class="charts-grid">
-        <div class="card">
-          <div class="section-header">
-            <h2>Gráfico de quantidades</h2>
-          </div>
-          <canvas id="graficoQuantidade"></canvas>
-        </div>
-
-        <div class="card">
-          <div class="section-header">
-            <h2>Gráfico de valores</h2>
-          </div>
-          <canvas id="graficoValor"></canvas>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="table-toolbar">
-          <div>
-            <h2>Produtos cadastrados</h2>
-            <p>Lista completa do estoque do mercado</p>
-          </div>
-
-          <div class="toolbar-right">
-            <input type="text" id="searchInput" placeholder="Pesquisar produto..." />
-            <select id="sortSelect">
-              <option value="nome">Ordenar por nome</option>
-              <option value="quantidade">Ordenar por quantidade</option>
-              <option value="valor">Ordenar por valor</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>Categoria</th>
-                <th>Código/NFC</th>
-                <th>Quantidade</th>
-                <th>Preço</th>
-                <th>Total</th>
-                <th>Mínimo</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="productTableBody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="section-header">
-          <h2>Histórico de movimentações</h2>
-        </div>
-
-        <div id="historicoLista" class="history-list"></div>
-      </section>
-    </main>
-  </div>
-
-  <div id="editModal" class="modal hidden">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h2>Editar produto</h2>
-        <button id="closeModalBtn" class="close-btn" type="button">&times;</button>
-      </div>
-
-      <form id="editForm" class="edit-form">
-        <input type="hidden" id="editIndex" />
-
-        <div class="field">
-          <label for="editNome">Nome do produto</label>
-          <input type="text" id="editNome" required />
-        </div>
-
-        <div class="field">
-          <label for="editCategoria">Categoria</label>
-          <input type="text" id="editCategoria" required />
-        </div>
-
-        <div class="field">
-          <label for="editQuantidade">Quantidade</label>
-          <input type="number" id="editQuantidade" min="0" required />
-        </div>
-
-        <div class="field">
-          <label for="editValor">Preço unitário</label>
-          <input type="number" id="editValor" min="0" step="0.01" required />
-        </div>
-
-        <div class="field">
-          <label for="editCodigo">Código / NFC</label>
-          <input type="text" id="editCodigo" required />
-        </div>
-
-        <div class="field">
-          <label for="editEstoqueMinimo">Estoque mínimo</label>
-          <input type="number" id="editEstoqueMinimo" min="0" required />
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" id="cancelModalBtn" class="btn btn-outline">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar alterações</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
