@@ -233,13 +233,40 @@ function exportarCSV() {
 function renderizarProdutos() {
   const tabelaEstoque = document.getElementById("tabelaEstoque");
   const campoBusca = document.getElementById("campoBusca");
+  const filtroProdutos = document.getElementById("filtroProdutos");
+
   const busca = campoBusca ? campoBusca.value.toLowerCase().trim() : "";
+  const tipoFiltro = filtroProdutos ? filtroProdutos.value : "todos";
 
   tabelaEstoque.innerHTML = "";
 
-  const produtosFiltrados = produtos.filter((produto) =>
+  let produtosFiltrados = produtos.filter((produto) =>
     produto.nome.toLowerCase().includes(busca)
   );
+
+  if (tipoFiltro === "nome") {
+    produtosFiltrados.sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+
+  if (tipoFiltro === "maiorQuantidade") {
+    produtosFiltrados.sort(
+      (a, b) => converterNumero(b.quantidade) - converterNumero(a.quantidade)
+    );
+  }
+
+  if (tipoFiltro === "menorQuantidade") {
+    produtosFiltrados.sort(
+      (a, b) => converterNumero(a.quantidade) - converterNumero(b.quantidade)
+    );
+  }
+
+  if (tipoFiltro === "maiorValor") {
+    produtosFiltrados.sort((a, b) => {
+      const totalB = converterNumero(b.quantidade) * converterNumero(b.valor);
+      const totalA = converterNumero(a.quantidade) * converterNumero(a.valor);
+      return totalB - totalA;
+    });
+  }
 
   if (produtosFiltrados.length === 0) {
     tabelaEstoque.innerHTML = `
@@ -251,6 +278,48 @@ function renderizarProdutos() {
     atualizarGraficos();
     return;
   }
+
+  produtosFiltrados.forEach((produtoFiltrado) => {
+    const indexOriginal = produtos.findIndex(
+      (p) =>
+        p.nome === produtoFiltrado.nome &&
+        converterNumero(p.quantidade) === converterNumero(produtoFiltrado.quantidade) &&
+        converterNumero(p.valor) === converterNumero(produtoFiltrado.valor)
+    );
+
+    const quantidade = converterNumero(produtoFiltrado.quantidade);
+    const valor = converterNumero(produtoFiltrado.valor);
+    const total = quantidade * valor;
+
+    const status =
+      quantidade <= 5
+        ? '<span class="status-baixo">Estoque baixo</span>'
+        : '<span class="status-ok">Em estoque</span>';
+
+    const classeLinha = quantidade <= 5 ? "linha-estoque-baixo" : "";
+
+    tabelaEstoque.innerHTML += `
+      <tr class="${classeLinha}">
+        <td>${produtoFiltrado.nome}</td>
+        <td>${quantidade}</td>
+        <td>${formatarMoeda(valor)}</td>
+        <td>${formatarMoeda(total)}</td>
+        <td>${status}</td>
+        <td>
+          <button class="btn-entrada" onclick="movimentarEstoque(${indexOriginal}, 'entrada')">+ Entrada</button>
+          <button class="btn-saida" onclick="movimentarEstoque(${indexOriginal}, 'saida')">- Saída</button>
+        </td>
+        <td>
+          <button class="btn-editar" onclick="editarProduto(${indexOriginal})">Editar</button>
+          <button class="btn-remover" onclick="removerProduto(${indexOriginal})">Remover</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  atualizarResumo();
+  atualizarGraficos();
+}
 
   produtosFiltrados.forEach((produtoFiltrado) => {
     const indexOriginal = produtos.findIndex(
