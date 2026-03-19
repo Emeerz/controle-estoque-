@@ -40,9 +40,44 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnConfirmarAcao = document.getElementById("btnConfirmarAcao");
 
   const toast = document.getElementById("toast");
+
   const canvasQuantidade = document.getElementById("graficoQuantidade");
   const canvasValor = document.getElementById("graficoValor");
 
+  const btnTema = document.getElementById("btnTema");
+
+  // ================== TEMA ==================
+  const temaSalvo = localStorage.getItem("tema");
+
+  if (temaSalvo === "light") {
+    document.body.classList.add("light");
+  }
+
+  function atualizarTextoTema() {
+    if (!btnTema) return;
+
+    if (document.body.classList.contains("light")) {
+      btnTema.textContent = "☀️ Tema claro";
+    } else {
+      btnTema.textContent = "🌙 Tema escuro";
+    }
+  }
+
+  if (btnTema) {
+    atualizarTextoTema();
+
+    btnTema.addEventListener("click", () => {
+      document.body.classList.toggle("light");
+
+      const temaAtual = document.body.classList.contains("light") ? "light" : "dark";
+      localStorage.setItem("tema", temaAtual);
+
+      atualizarTextoTema();
+      atualizarGraficos();
+    });
+  }
+
+  // ================== FUNÇÕES ==================
   function salvarProdutos() {
     localStorage.setItem("produtos", JSON.stringify(produtos));
   }
@@ -58,28 +93,20 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function obterStatus(quantidade) {
-    if (quantidade === 0) {
-      return '<span class="status zerado">Sem estoque</span>';
-    }
-    if (quantidade <= 5) {
-      return '<span class="status baixo">Baixo</span>';
-    }
+  function obterStatus(qtd) {
+    if (qtd === 0) return '<span class="status zerado">Sem estoque</span>';
+    if (qtd <= 5) return '<span class="status baixo">Baixo</span>';
     return '<span class="status ok">OK</span>';
   }
 
-  function mostrarToast(mensagem, tipo = "success") {
+  function mostrarToast(msg, tipo = "success") {
     if (!toast) return;
-    toast.textContent = mensagem;
+    toast.textContent = msg;
     toast.className = `toast show ${tipo}`;
-
-    setTimeout(() => {
-      toast.className = "toast";
-    }, 2500);
+    setTimeout(() => (toast.className = "toast"), 2500);
   }
 
   function abrirConfirmacao(titulo, mensagem, callback) {
-    if (!modalConfirmacao || !modalTitulo || !modalMensagem) return;
     modalTitulo.textContent = titulo;
     modalMensagem.textContent = mensagem;
     modalConfirmacao.style.display = "flex";
@@ -87,102 +114,47 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function fecharConfirmacao() {
-    if (modalConfirmacao) modalConfirmacao.style.display = "none";
+    modalConfirmacao.style.display = "none";
     acaoConfirmada = null;
   }
 
   function abrirModalEdicao(index) {
-    const produto = produtos[index];
-    if (!produto || !modalEditar) return;
-
+    const p = produtos[index];
     editIndex.value = index;
-    editNome.value = produto.nome;
-    editQuantidade.value = produto.quantidade;
-    editValor.value = produto.valor;
-    editMovimentacao.value = produto.movimentacao || "Ajuste";
-
+    editNome.value = p.nome;
+    editQuantidade.value = p.quantidade;
+    editValor.value = p.valor;
+    editMovimentacao.value = p.movimentacao;
     modalEditar.style.display = "flex";
   }
 
   function fecharModalEdicao() {
-    if (modalEditar) modalEditar.style.display = "none";
+    modalEditar.style.display = "none";
   }
 
   function atualizarResumo() {
-    if (!totalProdutosEl || !totalItensEl || !valorTotalEl) return;
-
-    const totalProdutos = produtos.length;
-    const totalItens = produtos.reduce((acc, produto) => acc + produto.quantidade, 0);
-    const valorTotal = produtos.reduce((acc, produto) => acc + (produto.quantidade * produto.valor), 0);
-
-    totalProdutosEl.textContent = totalProdutos;
-    totalItensEl.textContent = totalItens;
-    valorTotalEl.textContent = formatarMoeda(valorTotal);
-  }
-
-  function obterProdutosFiltrados() {
-    const termo = buscaInput ? buscaInput.value.trim().toLowerCase() : "";
-    const ordenacao = ordenacaoSelect ? ordenacaoSelect.value : "nome-asc";
-
-    let lista = [...produtos];
-
-    if (termo) {
-      lista = lista.filter((produto) =>
-        produto.nome.toLowerCase().includes(termo)
-      );
-    }
-
-    lista.sort((a, b) => {
-      switch (ordenacao) {
-        case "nome-asc":
-          return a.nome.localeCompare(b.nome);
-        case "nome-desc":
-          return b.nome.localeCompare(a.nome);
-        case "quantidade-desc":
-          return b.quantidade - a.quantidade;
-        case "quantidade-asc":
-          return a.quantidade - b.quantidade;
-        case "valor-desc":
-          return b.valor - a.valor;
-        case "valor-asc":
-          return a.valor - b.valor;
-        default:
-          return 0;
-      }
-    });
-
-    return lista;
+    totalProdutosEl.textContent = produtos.length;
+    totalItensEl.textContent = produtos.reduce((a, p) => a + p.quantidade, 0);
+    valorTotalEl.textContent = formatarMoeda(
+      produtos.reduce((a, p) => a + p.quantidade * p.valor, 0)
+    );
   }
 
   function renderizarProdutos() {
     if (!listaProdutosEl) return;
 
-    const lista = obterProdutosFiltrados();
-
-    if (lista.length === 0) {
-      listaProdutosEl.innerHTML = `
-        <tr>
-          <td colspan="7" class="vazio">Nenhum produto encontrado.</td>
-        </tr>
-      `;
-      return;
-    }
-
-    listaProdutosEl.innerHTML = lista.map((produto) => {
-      const indexOriginal = produtos.findIndex((p) => p.id === produto.id);
-      const total = produto.quantidade * produto.valor;
-
+    listaProdutosEl.innerHTML = produtos.map((p, i) => {
       return `
         <tr>
-          <td>${produto.nome}</td>
-          <td>${produto.quantidade}</td>
-          <td>${formatarMoeda(produto.valor)}</td>
-          <td>${formatarMoeda(total)}</td>
-          <td>${obterStatus(produto.quantidade)}</td>
-          <td>${produto.movimentacao || "Ajuste"}</td>
+          <td>${p.nome}</td>
+          <td>${p.quantidade}</td>
+          <td>${formatarMoeda(p.valor)}</td>
+          <td>${formatarMoeda(p.quantidade * p.valor)}</td>
+          <td>${obterStatus(p.quantidade)}</td>
+          <td>${p.movimentacao}</td>
           <td class="acoes">
-            <button class="btn-warning" onclick="abrirModalEdicao(${indexOriginal})">Editar</button>
-            <button class="btn-danger" onclick="excluirProduto(${indexOriginal})">Excluir</button>
+            <button class="btn-warning" onclick="abrirModalEdicao(${i})">Editar</button>
+            <button class="btn-danger" onclick="excluirProduto(${i})">Excluir</button>
           </td>
         </tr>
       `;
@@ -192,283 +164,134 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderizarHistorico() {
     if (!listaHistoricoEl) return;
 
-    if (historico.length === 0) {
-      listaHistoricoEl.innerHTML = `<li class="vazio">Nenhuma movimentação registrada.</li>`;
+    if (!historico.length) {
+      listaHistoricoEl.innerHTML = `<li class="vazio">Sem histórico</li>`;
       return;
     }
 
-    listaHistoricoEl.innerHTML = historico.map((item) => `
-      <li>
-        <strong>${item.data}</strong> — ${item.tipo}:
-        <strong>${item.produto}</strong> | Quantidade: ${item.quantidade}
-        ${item.valor !== undefined ? `| Valor: ${formatarMoeda(item.valor)}` : ""}
-      </li>
+    listaHistoricoEl.innerHTML = historico.map(h => `
+      <li><strong>${h.data}</strong> - ${h.tipo}: ${h.produto}</li>
     `).join("");
   }
 
   function atualizarGraficos() {
-    if (!canvasQuantidade || !canvasValor || typeof Chart === "undefined") return;
+    if (!canvasQuantidade || !canvasValor) return;
 
-    const labels = produtos.map((produto) => produto.nome);
-    const quantidades = produtos.map((produto) => produto.quantidade);
-    const valoresTotais = produtos.map((produto) => produto.quantidade * produto.valor);
-
-    const ctxQuantidade = canvasQuantidade.getContext("2d");
-    const ctxValor = canvasValor.getContext("2d");
+    const cor = document.body.classList.contains("light") ? "#334155" : "#cbd5e1";
 
     if (graficoQuantidade) graficoQuantidade.destroy();
     if (graficoValor) graficoValor.destroy();
 
-    graficoQuantidade = new Chart(ctxQuantidade, {
+    graficoQuantidade = new Chart(canvasQuantidade, {
       type: "bar",
       data: {
-        labels,
+        labels: produtos.map(p => p.nome),
         datasets: [{
-          label: "Quantidade",
-          data: quantidades,
-          borderWidth: 1
+          label: "Qtd",
+          data: produtos.map(p => p.quantidade)
         }]
       },
       options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            labels: { color: "#cbd5e1" }
-          }
-        },
-        scales: {
-          x: {
-            ticks: { color: "#cbd5e1" },
-            grid: { color: "rgba(255,255,255,0.08)" }
-          },
-          y: {
-            beginAtZero: true,
-            ticks: { color: "#cbd5e1" },
-            grid: { color: "rgba(255,255,255,0.08)" }
-          }
-        }
+        plugins: { legend: { labels: { color: cor } } }
       }
     });
 
-    graficoValor = new Chart(ctxValor, {
+    graficoValor = new Chart(canvasValor, {
       type: "doughnut",
       data: {
-        labels,
+        labels: produtos.map(p => p.nome),
         datasets: [{
-          label: "Valor",
-          data: valoresTotais,
-          borderWidth: 1
+          data: produtos.map(p => p.quantidade * p.valor)
         }]
       },
       options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            labels: { color: "#cbd5e1" }
-          }
-        }
+        plugins: { legend: { labels: { color: cor } } }
       }
     });
   }
 
-  function adicionarHistorico(tipo, produto) {
+  function adicionarHistorico(tipo, p) {
     historico.unshift({
       data: new Date().toLocaleString("pt-BR"),
       tipo,
-      produto: produto.nome,
-      quantidade: produto.quantidade,
-      valor: produto.valor
+      produto: p.nome
     });
-
     salvarHistorico();
     renderizarHistorico();
   }
 
-  if (formProduto) {
-    formProduto.addEventListener("submit", (e) => {
-      e.preventDefault();
+  // ================== EVENTOS ==================
+  formProduto.addEventListener("submit", e => {
+    e.preventDefault();
 
-      const nome = nomeInput.value.trim();
-      const quantidade = Number(quantidadeInput.value);
-      const valor = Number(valorInput.value);
-      const movimentacao = movimentacaoInput.value;
+    const novo = {
+      nome: nomeInput.value,
+      quantidade: Number(quantidadeInput.value),
+      valor: Number(valorInput.value),
+      movimentacao: movimentacaoInput.value
+    };
 
-      if (!nome || isNaN(quantidade) || isNaN(valor) || quantidade < 0 || valor < 0) {
-        mostrarToast("Preencha todos os campos corretamente.", "error");
-        return;
-      }
+    produtos.push(novo);
+    salvarProdutos();
+    adicionarHistorico("Adicionado", novo);
 
-      const novoProduto = {
-        id: Date.now(),
-        nome,
-        quantidade,
-        valor,
-        movimentacao
-      };
+    formProduto.reset();
+    renderizarProdutos();
+    atualizarResumo();
+    atualizarGraficos();
 
-      produtos.push(novoProduto);
+    mostrarToast("Produto adicionado!");
+  });
+
+  btnSalvarEdicao.addEventListener("click", () => {
+    const i = Number(editIndex.value);
+
+    produtos[i] = {
+      nome: editNome.value,
+      quantidade: Number(editQuantidade.value),
+      valor: Number(editValor.value),
+      movimentacao: editMovimentacao.value
+    };
+
+    salvarProdutos();
+    fecharModalEdicao();
+    renderizarProdutos();
+    atualizarResumo();
+    atualizarGraficos();
+
+    mostrarToast("Produto atualizado!");
+  });
+
+  window.excluirProduto = function (i) {
+    abrirConfirmacao("Excluir", "Tem certeza?", () => {
+      produtos.splice(i, 1);
       salvarProdutos();
-      adicionarHistorico("Produto adicionado", novoProduto);
-
-      formProduto.reset();
-      movimentacaoInput.value = "Entrada";
-
       renderizarProdutos();
       atualizarResumo();
       atualizarGraficos();
-      mostrarToast("Produto adicionado com sucesso!", "success");
+      mostrarToast("Removido!");
     });
-  }
+  };
 
-  if (btnSalvarEdicao) {
-    btnSalvarEdicao.addEventListener("click", () => {
-      const index = Number(editIndex.value);
-      const nome = editNome.value.trim();
-      const quantidade = Number(editQuantidade.value);
-      const valor = Number(editValor.value);
-      const movimentacao = editMovimentacao.value;
-
-      if (!nome || isNaN(quantidade) || isNaN(valor) || quantidade < 0 || valor < 0) {
-        mostrarToast("Preencha os dados corretamente.", "error");
-        return;
-      }
-
-      produtos[index] = {
-        ...produtos[index],
-        nome,
-        quantidade,
-        valor,
-        movimentacao
-      };
-
+  btnLimparEstoque.addEventListener("click", () => {
+    abrirConfirmacao("Limpar", "Apagar tudo?", () => {
+      produtos = [];
       salvarProdutos();
-      adicionarHistorico("Produto editado", produtos[index]);
-
-      fecharModalEdicao();
       renderizarProdutos();
       atualizarResumo();
       atualizarGraficos();
-      mostrarToast("Produto atualizado com sucesso!", "success");
     });
-  }
+  });
 
-  function excluirProduto(index) {
-    abrirConfirmacao(
-      "Excluir produto",
-      "Tem certeza que deseja remover este produto do estoque?",
-      () => {
-        const removido = produtos[index];
-        produtos.splice(index, 1);
-        salvarProdutos();
-        adicionarHistorico("Produto removido", removido);
-        renderizarProdutos();
-        atualizarResumo();
-        atualizarGraficos();
-        mostrarToast("Produto removido com sucesso!", "warning");
-      }
-    );
-  }
+  btnCancelarEdicao.addEventListener("click", fecharModalEdicao);
+  btnCancelarAcao.addEventListener("click", fecharConfirmacao);
 
-  if (btnLimparEstoque) {
-    btnLimparEstoque.addEventListener("click", () => {
-      if (produtos.length === 0) {
-        mostrarToast("O estoque já está vazio.", "error");
-        return;
-      }
+  btnConfirmarAcao.addEventListener("click", () => {
+    if (acaoConfirmada) acaoConfirmada();
+    fecharConfirmacao();
+  });
 
-      abrirConfirmacao(
-        "Limpar estoque",
-        "Essa ação vai remover todos os produtos cadastrados. Deseja continuar?",
-        () => {
-          produtos = [];
-          salvarProdutos();
-          renderizarProdutos();
-          atualizarResumo();
-          atualizarGraficos();
-          mostrarToast("Estoque limpo com sucesso!", "warning");
-        }
-      );
-    });
-  }
-
-  if (btnExportarCSV) {
-    btnExportarCSV.addEventListener("click", () => {
-      if (historico.length === 0) {
-        mostrarToast("Não há histórico para exportar.", "error");
-        return;
-      }
-
-      const cabecalho = "Data,Tipo,Produto,Quantidade,Valor\n";
-      const linhas = historico.map((item) => {
-        const data = `"${item.data}"`;
-        const tipo = `"${item.tipo}"`;
-        const produto = `"${item.produto}"`;
-        const quantidade = item.quantidade;
-        const valor = item.valor ?? 0;
-        return `${data},${tipo},${produto},${quantidade},${valor}`;
-      });
-
-      const csv = cabecalho + linhas.join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "historico_estoque.csv";
-      link.click();
-
-      URL.revokeObjectURL(url);
-      mostrarToast("Histórico exportado com sucesso!", "success");
-    });
-  }
-
-  if (btnApagarHistorico) {
-    btnApagarHistorico.addEventListener("click", () => {
-      if (historico.length === 0) {
-        mostrarToast("O histórico já está vazio.", "error");
-        return;
-      }
-
-      abrirConfirmacao(
-        "Apagar histórico",
-        "Deseja apagar todo o histórico de movimentações?",
-        () => {
-          historico = [];
-          salvarHistorico();
-          renderizarHistorico();
-          mostrarToast("Histórico apagado com sucesso!", "warning");
-        }
-      );
-    });
-  }
-
-  if (buscaInput) buscaInput.addEventListener("input", renderizarProdutos);
-  if (ordenacaoSelect) ordenacaoSelect.addEventListener("change", renderizarProdutos);
-  if (btnCancelarEdicao) btnCancelarEdicao.addEventListener("click", fecharModalEdicao);
-  if (btnCancelarAcao) btnCancelarAcao.addEventListener("click", fecharConfirmacao);
-
-  if (modalEditar) {
-    modalEditar.addEventListener("click", (e) => {
-      if (e.target === modalEditar) fecharModalEdicao();
-    });
-  }
-
-  if (btnConfirmarAcao) {
-    btnConfirmarAcao.addEventListener("click", () => {
-      if (acaoConfirmada) acaoConfirmada();
-      fecharConfirmacao();
-    });
-  }
-
-  if (modalConfirmacao) {
-    modalConfirmacao.addEventListener("click", (e) => {
-      if (e.target === modalConfirmacao) fecharConfirmacao();
-    });
-  }
-
-  window.abrirModalEdicao = abrirModalEdicao;
-  window.excluirProduto = excluirProduto;
-
+  // INIT
   renderizarProdutos();
   renderizarHistorico();
   atualizarResumo();
