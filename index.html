@@ -1,141 +1,93 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Controle de Estoque</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Loading inicial -->
   <div id="loadingScreen" class="loading-screen">
-    <div class="loader-card">
+    <div class="loader-box">
       <div class="spinner"></div>
       <h2>Carregando sistema...</h2>
       <p>Aguarde um instante</p>
     </div>
   </div>
 
-  <!-- Tela de login -->
-  <section id="loginScreen" class="auth-screen hidden">
-    <div class="auth-card fade-up">
-      <div class="auth-header">
-        <h1>Controle de Estoque</h1>
-        <p>Faça login para acessar o sistema</p>
-      </div>
+  <div id="loginScreen" class="screen hidden">
+    <div class="card login-card">
+      <h1>Controle de Estoque</h1>
+      <p class="subtitle">Entre para acessar o sistema</p>
 
-      <form id="loginForm" class="auth-form">
-        <div class="input-group">
+      <form id="loginForm">
+        <div class="field">
           <label for="username">Usuário</label>
-          <input
-            type="text"
-            id="username"
-            placeholder="Digite seu usuário"
-            autocomplete="username"
-            required
-          />
+          <input type="text" id="username" required>
         </div>
 
-        <div class="input-group">
+        <div class="field">
           <label for="password">Senha</label>
-          <input
-            type="password"
-            id="password"
-            placeholder="Digite sua senha"
-            autocomplete="current-password"
-            required
-          />
+          <input type="password" id="password" required>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-full">Entrar</button>
-        <p class="auth-tip">Usuário padrão: <strong>admin</strong> | Senha: <strong>1234</strong></p>
-        <p id="loginMessage" class="message"></p>
+        <button type="submit" class="btn btn-primary">Entrar</button>
       </form>
+
+      <p class="hint">Usuário: <strong>admin</strong> | Senha: <strong>1234</strong></p>
+      <p id="loginMessage" class="message"></p>
     </div>
-  </section>
+  </div>
 
-  <!-- Sistema -->
-  <main id="appScreen" class="app hidden">
+  <div id="appScreen" class="app hidden">
     <aside class="sidebar">
-      <div>
-        <div class="brand">
-          <div class="brand-icon">📦</div>
-          <div>
-            <h2>Estoque Pro</h2>
-            <p>Sistema local</p>
-          </div>
-        </div>
+      <h2>📦 Estoque Pro</h2>
+      <p class="sidebar-text">Sistema local</p>
 
-        <div class="sidebar-section">
-          <p class="sidebar-title">Resumo</p>
-          <div class="mini-card">
-            <span>Total de produtos</span>
-            <strong id="totalProdutos">0</strong>
-          </div>
-          <div class="mini-card">
-            <span>Total em estoque</span>
-            <strong id="totalQuantidade">0</strong>
-          </div>
-          <div class="mini-card">
-            <span>Valor total</span>
-            <strong id="valorTotal">R$ 0,00</strong>
-          </div>
-        </div>
-
-        <div class="sidebar-section">
-          <p class="sidebar-title">Ações rápidas</p>
-          <button id="btnExportCsv" class="btn btn-secondary btn-full">Exportar CSV</button>
-          <label for="csvFile" class="btn btn-secondary btn-full file-label">Importar CSV</label>
-          <input type="file" id="csvFile" accept=".csv" hidden />
-          <button id="btnLimparTudo" class="btn btn-danger btn-full">Limpar tudo</button>
-        </div>
+      <div class="summary-box">
+        <p>Total de produtos: <strong id="totalProdutos">0</strong></p>
+        <p>Total em estoque: <strong id="totalQuantidade">0</strong></p>
+        <p>Valor total: <strong id="valorTotal">R$ 0,00</strong></p>
       </div>
 
-      <button id="logoutBtn" class="btn btn-outline btn-full">Sair</button>
+      <button id="btnExportCsv" class="btn btn-secondary">Exportar CSV</button>
+      <label for="csvFile" class="btn btn-secondary file-btn">Importar CSV</label>
+      <input type="file" id="csvFile" accept=".csv" hidden>
+      <button id="btnLimparTudo" class="btn btn-danger">Limpar tudo</button>
+      <button id="logoutBtn" class="btn btn-outline">Sair</button>
     </aside>
 
-    <section class="content">
-      <header class="topbar fade-down">
-        <div>
-          <h1>Controle de Estoque</h1>
-          <p>Gerencie seus produtos com rapidez</p>
-        </div>
-      </header>
+    <main class="main-content">
+      <div class="card">
+        <h1>Controle de Estoque</h1>
+        <p class="subtitle">Adicione e gerencie seus produtos</p>
 
-      <section class="card fade-up">
-        <div class="card-header">
-          <h3>Adicionar produto</h3>
-        </div>
-
-        <form id="productForm" class="form-grid">
-          <div class="input-group">
+        <form id="productForm" class="product-form">
+          <div class="field">
             <label for="nome">Nome do produto</label>
-            <input type="text" id="nome" placeholder="Ex: Arroz 5kg" required />
+            <input type="text" id="nome" required>
           </div>
 
-          <div class="input-group">
+          <div class="field">
             <label for="quantidade">Quantidade</label>
-            <input type="number" id="quantidade" placeholder="Ex: 10" min="0" required />
+            <input type="number" id="quantidade" min="0" required>
           </div>
 
-          <div class="input-group">
-            <label for="valor">Valor unitário (R$)</label>
-            <input type="number" id="valor" placeholder="Ex: 24.90" min="0" step="0.01" required />
+          <div class="field">
+            <label for="valor">Valor unitário</label>
+            <input type="number" id="valor" min="0" step="0.01" required>
           </div>
 
-          <div class="input-group action-group">
-            <label>&nbsp;</label>
-            <button type="submit" class="btn btn-primary">Adicionar produto</button>
-          </div>
+          <button type="submit" class="btn btn-primary">Adicionar produto</button>
         </form>
 
         <p id="appMessage" class="message"></p>
-      </section>
+      </div>
 
-      <section class="card fade-up delay-1">
-        <div class="card-header table-header">
-          <h3>Produtos cadastrados</h3>
-          <input type="text" id="searchInput" class="search-input" placeholder="Pesquisar produto..." />
+      <div class="card">
+        <div class="table-top">
+          <h2>Produtos cadastrados</h2>
+          <input type="text" id="searchInput" placeholder="Pesquisar produto...">
         </div>
 
         <div class="table-wrapper">
@@ -149,14 +101,12 @@
                 <th>Ações</th>
               </tr>
             </thead>
-            <tbody id="productTableBody">
-              <!-- preenchido via JS -->
-            </tbody>
+            <tbody id="productTableBody"></tbody>
           </table>
         </div>
-      </section>
-    </section>
-  </main>
+      </div>
+    </main>
+  </div>
 
   <script src="script.js"></script>
 </body>
