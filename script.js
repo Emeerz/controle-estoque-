@@ -1,280 +1,236 @@
-const STORAGE_PRODUCTS = "mercado_stock_produtos";
-const STORAGE_HISTORY = "mercado_stock_historico";
-const STORAGE_LOGIN = "mercado_stock_logado";
-
 let produtos = [];
 let historico = [];
 let graficoQuantidade = null;
 let graficoValor = null;
 
-const loadingScreen = document.getElementById("loadingScreen");
-const loginScreen = document.getElementById("loginScreen");
-const appScreen = document.getElementById("appScreen");
+const CHAVE_PRODUTOS = "produtos";
+const CHAVE_HISTORICO = "historicoEstoque";
+const CHAVE_LOGIN = "usuarioLogado";
 
-const loginForm = document.getElementById("loginForm");
-const loginMessage = document.getElementById("loginMessage");
-const logoutBtn = document.getElementById("logoutBtn");
+function converterNumero(valor) {
+  if (typeof valor === "number") return valor;
 
-const productForm = document.getElementById("productForm");
-const appMessage = document.getElementById("appMessage");
+  if (typeof valor === "string") {
+    const valorTratado = valor.replace(/\s/g, "").replace(",", ".");
+    const numero = Number(valorTratado);
+    return isNaN(numero) ? 0 : numero;
+  }
 
-const nomeInput = document.getElementById("nome");
-const categoriaInput = document.getElementById("categoria");
-const quantidadeInput = document.getElementById("quantidade");
-const valorInput = document.getElementById("valor");
-const codigoInput = document.getElementById("codigo");
-const estoqueMinimoInput = document.getElementById("estoqueMinimo");
-
-const productTableBody = document.getElementById("productTableBody");
-const historicoLista = document.getElementById("historicoLista");
-
-const searchInput = document.getElementById("searchInput");
-const sortSelect = document.getElementById("sortSelect");
-
-const totalProdutosEl = document.getElementById("totalProdutos");
-const totalQuantidadeEl = document.getElementById("totalQuantidade");
-const valorTotalEl = document.getElementById("valorTotal");
-const baixoEstoqueEl = document.getElementById("baixoEstoque");
-
-const statProdutos = document.getElementById("statProdutos");
-const statQuantidade = document.getElementById("statQuantidade");
-const statValor = document.getElementById("statValor");
-const statBaixoEstoque = document.getElementById("statBaixoEstoque");
-
-const btnExportCsv = document.getElementById("btnExportCsv");
-const csvFile = document.getElementById("csvFile");
-const btnLimparTudo = document.getElementById("btnLimparTudo");
-
-const editModal = document.getElementById("editModal");
-const editForm = document.getElementById("editForm");
-const closeModalBtn = document.getElementById("closeModalBtn");
-const cancelModalBtn = document.getElementById("cancelModalBtn");
-
-const editIndexInput = document.getElementById("editIndex");
-const editNomeInput = document.getElementById("editNome");
-const editCategoriaInput = document.getElementById("editCategoria");
-const editQuantidadeInput = document.getElementById("editQuantidade");
-const editValorInput = document.getElementById("editValor");
-const editCodigoInput = document.getElementById("editCodigo");
-const editEstoqueMinimoInput = document.getElementById("editEstoqueMinimo");
+  return 0;
+}
 
 function formatarMoeda(valor) {
-  return Number(valor).toLocaleString("pt-BR", {
+  return valor.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL"
   });
 }
 
-function mostrarMensagem(elemento, texto, cor = "#64748b") {
-  if (!elemento) return;
-
-  elemento.textContent = texto;
-  elemento.style.color = cor;
-
-  setTimeout(function () {
-    if (elemento.textContent === texto) {
-      elemento.textContent = "";
-    }
-  }, 3000);
+function obterDataHoraAtual() {
+  return new Date().toLocaleString("pt-BR");
 }
 
 function salvarProdutos() {
-  localStorage.setItem(STORAGE_PRODUCTS, JSON.stringify(produtos));
+  localStorage.setItem(CHAVE_PRODUTOS, JSON.stringify(produtos));
 }
 
 function carregarProdutos() {
-  const dados = localStorage.getItem(STORAGE_PRODUCTS);
-  produtos = dados ? JSON.parse(dados) : [];
+  const dados = localStorage.getItem(CHAVE_PRODUTOS);
+
+  if (dados) {
+    produtos = JSON.parse(dados).map((produto) => ({
+      nome: produto.nome || "",
+      quantidade: converterNumero(produto.quantidade),
+      valor: converterNumero(produto.valor)
+    }));
+  } else {
+    produtos = [];
+  }
 }
 
 function salvarHistorico() {
-  localStorage.setItem(STORAGE_HISTORY, JSON.stringify(historico));
+  localStorage.setItem(CHAVE_HISTORICO, JSON.stringify(historico));
 }
 
 function carregarHistorico() {
-  const dados = localStorage.getItem(STORAGE_HISTORY);
-  historico = dados ? JSON.parse(dados) : [];
+  const dados = localStorage.getItem(CHAVE_HISTORICO);
+
+  if (dados) {
+    historico = JSON.parse(dados);
+  } else {
+    historico = [];
+  }
 }
 
-function registrarHistorico(acao, produto) {
-  const data = new Date();
-  const registro = {
-    acao: acao,
-    produto: produto.nome,
-    categoria: produto.categoria,
-    quantidade: produto.quantidade,
-    valor: produto.valor,
-    codigo: produto.codigo,
-    data: data.toLocaleString("pt-BR")
-  };
+function adicionarHistorico(acao, detalhe) {
+  historico.unshift({
+    acao,
+    detalhe,
+    data: obterDataHoraAtual()
+  });
 
-  historico.unshift(registro);
-
-  if (historico.length > 30) {
-    historico = historico.slice(0, 30);
+  if (historico.length > 100) {
+    historico = historico.slice(0, 100);
   }
 
   salvarHistorico();
   renderizarHistorico();
 }
 
-function carregarSistema() {
-  carregarProdutos();
-  carregarHistorico();
-  atualizarTudo();
-}
+function renderizarHistorico() {
+  const listaHistorico = document.getElementById("listaHistorico");
 
-function atualizarTudo() {
-  renderizarTabela();
-  atualizarResumo();
-  renderizarHistorico();
-  atualizarGraficos();
-}
+  if (!listaHistorico) return;
 
-function contarBaixoEstoque() {
-  let total = 0;
-
-  for (let i = 0; i < produtos.length; i++) {
-    if (Number(produtos[i].quantidade) <= Number(produtos[i].estoqueMinimo)) {
-      total++;
-    }
+  if (historico.length === 0) {
+    listaHistorico.innerHTML = `<li class="empty-state">Nenhuma movimentação registrada.</li>`;
+    return;
   }
 
-  return total;
+  listaHistorico.innerHTML = historico
+    .map(
+      (item) => `
+        <li class="historico-item">
+          <strong>${item.acao}</strong>
+          <div>${item.detalhe}</div>
+          <span>${item.data}</span>
+        </li>
+      `
+    )
+    .join("");
 }
 
 function atualizarResumo() {
   const totalProdutos = produtos.length;
+  const totalQuantidade = produtos.reduce((acc, produto) => acc + converterNumero(produto.quantidade), 0);
+  const valorTotal = produtos.reduce(
+    (acc, produto) => acc + converterNumero(produto.quantidade) * converterNumero(produto.valor),
+    0
+  );
+  const estoqueBaixo = produtos.filter((produto) => converterNumero(produto.quantidade) <= 5).length;
 
-  let totalQuantidade = 0;
-  let valorTotal = 0;
-
-  for (let i = 0; i < produtos.length; i++) {
-    totalQuantidade += Number(produtos[i].quantidade);
-    valorTotal += Number(produtos[i].quantidade) * Number(produtos[i].valor);
-  }
-
-  const baixoEstoque = contarBaixoEstoque();
-
-  totalProdutosEl.textContent = totalProdutos;
-  totalQuantidadeEl.textContent = totalQuantidade;
-  valorTotalEl.textContent = formatarMoeda(valorTotal);
-  baixoEstoqueEl.textContent = baixoEstoque;
-
-  statProdutos.textContent = totalProdutos;
-  statQuantidade.textContent = totalQuantidade;
-  statValor.textContent = formatarMoeda(valorTotal);
-  statBaixoEstoque.textContent = baixoEstoque;
+  document.getElementById("totalProdutos").textContent = totalProdutos;
+  document.getElementById("totalQuantidade").textContent = totalQuantidade;
+  document.getElementById("valorTotal").textContent = formatarMoeda(valorTotal);
+  document.getElementById("estoqueBaixo").textContent = estoqueBaixo;
 }
 
-function obterProdutosFiltradosOrdenados() {
-  const termo = searchInput.value.trim().toLowerCase();
-  const tipoOrdenacao = sortSelect.value;
+function obterProdutosFiltrados() {
+  const termo = document.getElementById("buscaProduto").value.trim().toLowerCase();
 
-  const lista = produtos.filter(function (produto) {
-    return (
-      produto.nome.toLowerCase().includes(termo) ||
-      produto.categoria.toLowerCase().includes(termo) ||
-      produto.codigo.toLowerCase().includes(termo)
-    );
-  });
+  if (!termo) return produtos;
 
-  lista.sort(function (a, b) {
-    if (tipoOrdenacao === "quantidade") {
-      return Number(b.quantidade) - Number(a.quantidade);
-    }
-
-    if (tipoOrdenacao === "valor") {
-      return Number(b.valor) - Number(a.valor);
-    }
-
-    return a.nome.localeCompare(b.nome, "pt-BR");
-  });
-
-  return lista;
+  return produtos.filter((produto) =>
+    produto.nome.toLowerCase().includes(termo)
+  );
 }
 
-function renderizarTabela() {
-  productTableBody.innerHTML = "";
+function renderizarProdutos() {
+  const listaProdutos = document.getElementById("listaProdutos");
+  const produtosFiltrados = obterProdutosFiltrados();
 
-  const lista = obterProdutosFiltradosOrdenados();
+  if (!listaProdutos) return;
 
-  if (lista.length === 0) {
-    productTableBody.innerHTML = `
+  if (produtosFiltrados.length === 0) {
+    listaProdutos.innerHTML = `
       <tr>
-        <td colspan="9" class="empty-state">Nenhum produto encontrado.</td>
+        <td colspan="6" class="empty-state">Nenhum produto encontrado.</td>
       </tr>
     `;
+    atualizarResumo();
+    atualizarGraficos();
     return;
   }
 
-  for (let i = 0; i < lista.length; i++) {
-    const produto = lista[i];
-    const indexReal = produtos.findIndex(function (item) {
-      return item.id === produto.id;
-    });
+  listaProdutos.innerHTML = produtosFiltrados
+    .map((produto) => {
+      const indexReal = produtos.findIndex(
+        (p) =>
+          p.nome === produto.nome &&
+          Number(p.quantidade) === Number(produto.quantidade) &&
+          Number(p.valor) === Number(produto.valor)
+      );
 
-    const baixo = Number(produto.quantidade) <= Number(produto.estoqueMinimo);
-    const statusClass = baixo ? "low" : "ok";
-    const statusText = baixo ? "Baixo estoque" : "OK";
+      const valorTotalProduto = converterNumero(produto.quantidade) * converterNumero(produto.valor);
+      const estoqueBaixo = converterNumero(produto.quantidade) <= 5;
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${produto.nome}</td>
-      <td>${produto.categoria}</td>
-      <td>${produto.codigo}</td>
-      <td>${produto.quantidade}</td>
-      <td>${formatarMoeda(produto.valor)}</td>
-      <td>${formatarMoeda(Number(produto.quantidade) * Number(produto.valor))}</td>
-      <td>${produto.estoqueMinimo}</td>
-      <td><span class="status ${statusClass}">${statusText}</span></td>
-      <td>
-        <div class="actions">
-          <button class="btn btn-secondary" onclick="abrirModalEdicao(${indexReal})">Editar</button>
-          <button class="btn btn-danger" onclick="excluirProduto(${indexReal})">Excluir</button>
-        </div>
-      </td>
-    `;
+      return `
+        <tr>
+          <td>${produto.nome}</td>
+          <td>${produto.quantidade}</td>
+          <td>${formatarMoeda(converterNumero(produto.valor))}</td>
+          <td>${formatarMoeda(valorTotalProduto)}</td>
+          <td>
+            <span class="status ${estoqueBaixo ? "low" : "ok"}">
+              ${estoqueBaixo ? "Baixo" : "Normal"}
+            </span>
+          </td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-secondary btn-small" onclick="editarProduto(${indexReal})">Editar</button>
+              <button class="btn btn-danger btn-small" onclick="removerProduto(${indexReal})">Excluir</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
 
-    productTableBody.appendChild(tr);
-  }
+  atualizarResumo();
+  atualizarGraficos();
 }
 
-function renderizarHistorico() {
-  historicoLista.innerHTML = "";
+function limparFormulario() {
+  document.getElementById("produtoForm").reset();
+  document.getElementById("editIndex").value = "";
+  document.getElementById("btnSalvarProduto").textContent = "Salvar Produto";
+}
 
-  if (historico.length === 0) {
-    historicoLista.innerHTML = `<div class="empty-state">Nenhuma movimentação registrada ainda.</div>`;
-    return;
-  }
+function cancelarEdicao() {
+  limparFormulario();
+}
 
-  for (let i = 0; i < historico.length; i++) {
-    const item = historico[i];
-    const div = document.createElement("div");
-    div.className = "history-item";
-    div.innerHTML = `
-      <strong>${item.acao}: ${item.produto}</strong>
-      <span>Categoria: ${item.categoria} | Quantidade: ${item.quantidade} | Valor: ${formatarMoeda(item.valor)} | Código: ${item.codigo} | Data: ${item.data}</span>
-    `;
-    historicoLista.appendChild(div);
-  }
+function editarProduto(index) {
+  const produto = produtos[index];
+  if (!produto) return;
+
+  document.getElementById("nomeProduto").value = produto.nome;
+  document.getElementById("quantidadeProduto").value = produto.quantidade;
+  document.getElementById("valorProduto").value = produto.valor;
+  document.getElementById("editIndex").value = index;
+  document.getElementById("btnSalvarProduto").textContent = "Atualizar Produto";
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+
+function removerProduto(index) {
+  const produto = produtos[index];
+  if (!produto) return;
+
+  const confirmar = confirm(`Deseja realmente excluir o produto "${produto.nome}"?`);
+  if (!confirmar) return;
+
+  produtos.splice(index, 1);
+  salvarProdutos();
+  adicionarHistorico("Produto removido", `${produto.nome} foi removido do estoque.`);
+  renderizarProdutos();
+  limparFormulario();
 }
 
 function atualizarGraficos() {
-  const labels = produtos.map(function (produto) {
-    return produto.nome;
-  });
-
-  const dadosQuantidade = produtos.map(function (produto) {
-    return Number(produto.quantidade);
-  });
-
-  const dadosValor = produtos.map(function (produto) {
-    return Number(produto.quantidade) * Number(produto.valor);
-  });
+  const labels = produtos.map((produto) => produto.nome);
+  const dadosQuantidade = produtos.map((produto) => converterNumero(produto.quantidade));
+  const dadosValor = produtos.map((produto) =>
+    converterNumero(produto.quantidade) * converterNumero(produto.valor)
+  );
 
   const ctxQuantidade = document.getElementById("graficoQuantidade");
   const ctxValor = document.getElementById("graficoValor");
+
+  if (!ctxQuantidade || !ctxValor) return;
 
   if (graficoQuantidade) {
     graficoQuantidade.destroy();
@@ -287,403 +243,261 @@ function atualizarGraficos() {
   graficoQuantidade = new Chart(ctxQuantidade, {
     type: "bar",
     data: {
-      labels: labels,
+      labels,
       datasets: [
         {
           label: "Quantidade em estoque",
           data: dadosQuantidade,
-          backgroundColor: "rgba(37, 99, 235, 0.7)",
-          borderColor: "rgba(37, 99, 235, 1)",
-          borderWidth: 1,
-          borderRadius: 8
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          display: true
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  });
-
-  graficoValor = new Chart(ctxValor, {
-    type: "doughnut",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "Valor em estoque",
-          data: dadosValor,
-          backgroundColor: [
-            "#2563eb",
-            "#22c55e",
-            "#f59e0b",
-            "#ef4444",
-            "#8b5cf6",
-            "#14b8a6",
-            "#f97316",
-            "#06b6d4"
-          ],
           borderWidth: 1
         }
       ]
     },
     options: {
       responsive: true,
-      plugins: {
-        legend: {
-          position: "bottom"
+      maintainAspectRatio: false
+    }
+  });
+
+  graficoValor = new Chart(ctxValor, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Valor total por produto",
+          data: dadosValor,
+          borderWidth: 1
         }
-      }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
     }
   });
 }
 
-function adicionarProduto(event) {
-  event.preventDefault();
-
-  const nome = nomeInput.value.trim();
-  const categoria = categoriaInput.value.trim();
-  const quantidade = Number(quantidadeInput.value);
-  const valor = Number(valorInput.value);
-  const codigo = codigoInput.value.trim();
-  const estoqueMinimo = Number(estoqueMinimoInput.value);
-
-  if (
-    !nome ||
-    !categoria ||
-    !codigo ||
-    isNaN(quantidade) ||
-    isNaN(valor) ||
-    isNaN(estoqueMinimo) ||
-    quantidade < 0 ||
-    valor < 0 ||
-    estoqueMinimo < 0
-  ) {
-    mostrarMensagem(appMessage, "Preencha os campos corretamente.", "#ef4444");
-    return;
-  }
-
-  const codigoJaExiste = produtos.some(function (produto) {
-    return produto.codigo.toLowerCase() === codigo.toLowerCase();
-  });
-
-  if (codigoJaExiste) {
-    mostrarMensagem(appMessage, "Já existe um produto com esse código/NFC.", "#ef4444");
-    return;
-  }
-
-  const novoProduto = {
-    id: Date.now().toString(),
-    nome: nome,
-    categoria: categoria,
-    quantidade: quantidade,
-    valor: valor,
-    codigo: codigo,
-    estoqueMinimo: estoqueMinimo
-  };
-
-  produtos.push(novoProduto);
-  salvarProdutos();
-  registrarHistorico("Adicionado", novoProduto);
-  atualizarTudo();
-
-  productForm.reset();
-  nomeInput.focus();
-
-  mostrarMensagem(appMessage, "Produto adicionado com sucesso.", "#22c55e");
-}
-
-function abrirModalEdicao(index) {
-  const produto = produtos[index];
-  if (!produto) return;
-
-  editIndexInput.value = index;
-  editNomeInput.value = produto.nome;
-  editCategoriaInput.value = produto.categoria;
-  editQuantidadeInput.value = produto.quantidade;
-  editValorInput.value = produto.valor;
-  editCodigoInput.value = produto.codigo;
-  editEstoqueMinimoInput.value = produto.estoqueMinimo;
-
-  editModal.classList.remove("hidden");
-}
-
-function fecharModalEdicao() {
-  editModal.classList.add("hidden");
-  editForm.reset();
-}
-
-function salvarEdicao(event) {
-  event.preventDefault();
-
-  const index = Number(editIndexInput.value);
-  const produtoAtual = produtos[index];
-
-  if (!produtoAtual) return;
-
-  const nome = editNomeInput.value.trim();
-  const categoria = editCategoriaInput.value.trim();
-  const quantidade = Number(editQuantidadeInput.value);
-  const valor = Number(editValorInput.value);
-  const codigo = editCodigoInput.value.trim();
-  const estoqueMinimo = Number(editEstoqueMinimoInput.value);
-
-  if (
-    !nome ||
-    !categoria ||
-    !codigo ||
-    isNaN(quantidade) ||
-    isNaN(valor) ||
-    isNaN(estoqueMinimo) ||
-    quantidade < 0 ||
-    valor < 0 ||
-    estoqueMinimo < 0
-  ) {
-    mostrarMensagem(appMessage, "Preencha os dados da edição corretamente.", "#ef4444");
-    return;
-  }
-
-  const codigoJaExiste = produtos.some(function (produto, i) {
-    return i !== index && produto.codigo.toLowerCase() === codigo.toLowerCase();
-  });
-
-  if (codigoJaExiste) {
-    mostrarMensagem(appMessage, "Já existe outro produto com esse código/NFC.", "#ef4444");
-    return;
-  }
-
-  produtos[index] = {
-    ...produtoAtual,
-    nome: nome,
-    categoria: categoria,
-    quantidade: quantidade,
-    valor: valor,
-    codigo: codigo,
-    estoqueMinimo: estoqueMinimo
-  };
-
-  salvarProdutos();
-  registrarHistorico("Editado", produtos[index]);
-  atualizarTudo();
-  fecharModalEdicao();
-
-  mostrarMensagem(appMessage, "Produto editado com sucesso.", "#22c55e");
-}
-
-function excluirProduto(index) {
-  const produto = produtos[index];
-  if (!produto) return;
-
-  const confirmar = confirm(`Deseja excluir o produto "${produto.nome}"?`);
-  if (!confirmar) return;
-
-  produtos.splice(index, 1);
-  salvarProdutos();
-  registrarHistorico("Excluído", produto);
-  atualizarTudo();
-
-  mostrarMensagem(appMessage, "Produto excluído com sucesso.", "#22c55e");
-}
-
 function exportarCSV() {
   if (produtos.length === 0) {
-    mostrarMensagem(appMessage, "Não há produtos para exportar.", "#ef4444");
+    alert("Não há produtos para exportar.");
     return;
   }
 
-  let csv = "nome;categoria;quantidade;valor;codigo;estoqueMinimo\n";
+  let csv = "nome;quantidade;valor\n";
 
-  for (let i = 0; i < produtos.length; i++) {
-    const produto = produtos[i];
-    csv += `${produto.nome};${produto.categoria};${produto.quantidade};${produto.valor};${produto.codigo};${produto.estoqueMinimo}\n`;
-  }
+  produtos.forEach((produto) => {
+    csv += `${produto.nome};${produto.quantidade};${Number(produto.valor).toFixed(2)}\n`;
+  });
 
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
 
+  const link = document.createElement("a");
   link.href = url;
-  link.download = "estoque_mercado.csv";
-  document.body.appendChild(link);
+  link.download = "estoque.csv";
   link.click();
-  document.body.removeChild(link);
+
   URL.revokeObjectURL(url);
 
-  mostrarMensagem(appMessage, "CSV exportado com sucesso.", "#22c55e");
+  adicionarHistorico("Exportação CSV", "Os produtos foram exportados em CSV.");
 }
 
 function importarCSV(event) {
   const arquivo = event.target.files[0];
   if (!arquivo) return;
 
-  const leitor = new FileReader();
+  const reader = new FileReader();
 
-  leitor.onload = function (e) {
+  reader.onload = function (e) {
     const texto = e.target.result;
-    const linhas = texto.split(/\r?\n/).filter(function (linha) {
-      return linha.trim() !== "";
-    });
+
+    if (!texto || !texto.trim()) {
+      alert("CSV vazio ou inválido.");
+      event.target.value = "";
+      return;
+    }
+
+    const linhas = texto
+      .split(/\r?\n/)
+      .map((linha) => linha.trim())
+      .filter((linha) => linha !== "");
 
     if (linhas.length < 2) {
-      mostrarMensagem(appMessage, "CSV vazio ou inválido.", "#ef4444");
-      csvFile.value = "";
+      alert("Nenhum dado foi encontrado no CSV.");
+      event.target.value = "";
+      return;
+    }
+
+    const separador = linhas[0].includes(";") ? ";" : ",";
+    const cabecalho = linhas[0].split(separador).map((coluna) => coluna.trim().toLowerCase());
+
+    const nomeIndex = cabecalho.indexOf("nome");
+    const quantidadeIndex = cabecalho.indexOf("quantidade");
+    const valorIndex = cabecalho.indexOf("valor");
+
+    if (nomeIndex === -1 || quantidadeIndex === -1 || valorIndex === -1) {
+      alert("O CSV precisa ter as colunas: nome, quantidade, valor");
+      event.target.value = "";
       return;
     }
 
     const novosProdutos = [];
 
     for (let i = 1; i < linhas.length; i++) {
-      const colunas = linhas[i].split(";");
+      const colunas = linhas[i].split(separador).map((item) => item.trim());
 
-      if (colunas.length < 6) continue;
+      if (colunas.length < 3) continue;
 
-      const nome = colunas[0].trim();
-      const categoria = colunas[1].trim();
-      const quantidade = Number(String(colunas[2]).trim().replace(",", "."));
-      const valor = Number(String(colunas[3]).trim().replace(",", "."));
-      const codigo = colunas[4].trim();
-      const estoqueMinimo = Number(String(colunas[5]).trim().replace(",", "."));
+      const nome = colunas[nomeIndex] || "";
+      const quantidade = converterNumero(colunas[quantidadeIndex] || "0");
+      const valor = converterNumero(colunas[valorIndex] || "0");
 
-      if (
-        !nome ||
-        !categoria ||
-        !codigo ||
-        isNaN(quantidade) ||
-        isNaN(valor) ||
-        isNaN(estoqueMinimo)
-      ) {
-        continue;
-      }
+      if (!nome) continue;
 
       novosProdutos.push({
-        id: `${Date.now()}_${i}`,
-        nome: nome,
-        categoria: categoria,
-        quantidade: quantidade,
-        valor: valor,
-        codigo: codigo,
-        estoqueMinimo: estoqueMinimo
+        nome,
+        quantidade: isNaN(quantidade) ? 0 : quantidade,
+        valor: isNaN(valor) ? 0 : valor
       });
     }
 
     if (novosProdutos.length === 0) {
-      mostrarMensagem(appMessage, "Nenhum dado válido encontrado no CSV.", "#ef4444");
-      csvFile.value = "";
+      alert("Nenhum dado válido foi encontrado no CSV.");
+      event.target.value = "";
       return;
     }
 
     produtos = novosProdutos;
     salvarProdutos();
-    registrarHistorico("Importado CSV", {
-      nome: `${novosProdutos.length} produtos`,
-      categoria: "Importação",
-      quantidade: novosProdutos.length,
-      valor: 0,
-      codigo: "CSV"
-    });
-    atualizarTudo();
-
-    mostrarMensagem(appMessage, "CSV importado com sucesso.", "#22c55e");
-    csvFile.value = "";
+    renderizarProdutos();
+    adicionarHistorico("Importação CSV", `${novosProdutos.length} produto(s) importado(s) com sucesso.`);
+    alert("CSV importado com sucesso!");
+    event.target.value = "";
   };
 
-  leitor.readAsText(arquivo, "UTF-8");
+  reader.readAsText(arquivo, "UTF-8");
 }
 
 function limparTudo() {
-  if (produtos.length === 0) {
-    mostrarMensagem(appMessage, "A lista já está vazia.", "#ef4444");
+  if (produtos.length === 0 && historico.length === 0) {
+    alert("Não há dados para limpar.");
     return;
   }
 
-  const confirmar = confirm("Tem certeza que deseja apagar todos os produtos?");
+  const confirmar = confirm("Deseja realmente apagar todos os produtos e o histórico?");
   if (!confirmar) return;
 
   produtos = [];
-  salvarProdutos();
-  registrarHistorico("Limpeza geral", {
-    nome: "Todos os produtos",
-    categoria: "Sistema",
-    quantidade: 0,
-    valor: 0,
-    codigo: "-"
-  });
-  atualizarTudo();
+  historico = [];
+  localStorage.removeItem(CHAVE_PRODUTOS);
+  localStorage.removeItem(CHAVE_HISTORICO);
 
-  mostrarMensagem(appMessage, "Todos os produtos foram removidos.", "#22c55e");
+  renderizarProdutos();
+  renderizarHistorico();
+  limparFormulario();
+  alert("Todos os dados foram apagados.");
 }
 
-function fazerLogin(event) {
+function limparHistorico() {
+  if (historico.length === 0) {
+    alert("O histórico já está vazio.");
+    return;
+  }
+
+  const confirmar = confirm("Deseja limpar todo o histórico?");
+  if (!confirmar) return;
+
+  historico = [];
+  salvarHistorico();
+  renderizarHistorico();
+}
+
+function login(usuario, senha) {
+  if (usuario === "admin" && senha === "1234") {
+    localStorage.setItem(CHAVE_LOGIN, "true");
+    mostrarApp();
+    return true;
+  }
+
+  return false;
+}
+
+function logout() {
+  localStorage.removeItem(CHAVE_LOGIN);
+  document.getElementById("loginScreen").classList.add("active");
+  document.getElementById("appScreen").classList.remove("active");
+}
+
+function mostrarApp() {
+  document.getElementById("loginScreen").classList.remove("active");
+  document.getElementById("appScreen").classList.add("active");
+  carregarProdutos();
+  carregarHistorico();
+  renderizarProdutos();
+  renderizarHistorico();
+}
+
+document.getElementById("loginForm").addEventListener("submit", function (event) {
   event.preventDefault();
 
   const usuario = document.getElementById("username").value.trim();
   const senha = document.getElementById("password").value.trim();
 
-  if (usuario === "admin" && senha === "1234") {
-    localStorage.setItem(STORAGE_LOGIN, "true");
-    abrirSistema();
-  } else {
-    mostrarMensagem(loginMessage, "Usuário ou senha inválidos.", "#ef4444");
-  }
-}
+  const entrou = login(usuario, senha);
 
-function abrirSistema() {
-  loginScreen.classList.add("hidden");
-  appScreen.classList.remove("hidden");
-  carregarSistema();
-}
-
-function sairSistema() {
-  localStorage.removeItem(STORAGE_LOGIN);
-  appScreen.classList.add("hidden");
-  loginScreen.classList.remove("hidden");
-  loginForm.reset();
-}
-
-function iniciarApp() {
-  setTimeout(function () {
-    loadingScreen.classList.add("hidden");
-
-    const logado = localStorage.getItem(STORAGE_LOGIN) === "true";
-
-    if (logado) {
-      abrirSistema();
-    } else {
-      loginScreen.classList.remove("hidden");
-    }
-  }, 1200);
-}
-
-productForm.addEventListener("submit", adicionarProduto);
-loginForm.addEventListener("submit", fazerLogin);
-logoutBtn.addEventListener("click", sairSistema);
-btnExportCsv.addEventListener("click", exportarCSV);
-csvFile.addEventListener("change", importarCSV);
-btnLimparTudo.addEventListener("click", limparTudo);
-
-searchInput.addEventListener("input", renderizarTabela);
-sortSelect.addEventListener("change", renderizarTabela);
-
-editForm.addEventListener("submit", salvarEdicao);
-closeModalBtn.addEventListener("click", fecharModalEdicao);
-cancelModalBtn.addEventListener("click", fecharModalEdicao);
-
-editModal.addEventListener("click", function (event) {
-  if (event.target === editModal) {
-    fecharModalEdicao();
+  if (!entrou) {
+    alert("Usuário ou senha inválidos.");
   }
 });
 
-window.abrirModalEdicao = abrirModalEdicao;
-window.excluirProduto = excluirProduto;
+document.getElementById("produtoForm").addEventListener("submit", function (event) {
+  event.preventDefault();
 
-iniciarApp();
+  const nome = document.getElementById("nomeProduto").value.trim();
+  const quantidade = converterNumero(document.getElementById("quantidadeProduto").value);
+  const valor = converterNumero(document.getElementById("valorProduto").value);
+  const editIndex = document.getElementById("editIndex").value;
+
+  if (!nome) {
+    alert("Informe o nome do produto.");
+    return;
+  }
+
+  if (quantidade < 0 || valor < 0) {
+    alert("Quantidade e valor não podem ser negativos.");
+    return;
+  }
+
+  const produto = {
+    nome,
+    quantidade,
+    valor
+  };
+
+  if (editIndex !== "") {
+    const index = Number(editIndex);
+    const nomeAnterior = produtos[index]?.nome || nome;
+
+    produtos[index] = produto;
+    salvarProdutos();
+    adicionarHistorico("Produto editado", `${nomeAnterior} foi atualizado para ${nome}.`);
+  } else {
+    produtos.push(produto);
+    salvarProdutos();
+    adicionarHistorico("Produto adicionado", `${nome} foi adicionado ao estoque.`);
+  }
+
+  renderizarProdutos();
+  limparFormulario();
+});
+
+window.onload = function () {
+  const logado = localStorage.getItem(CHAVE_LOGIN) === "true";
+
+  if (logado) {
+    mostrarApp();
+  } else {
+    document.getElementById("loginScreen").classList.add("active");
+    document.getElementById("appScreen").classList.remove("active");
+  }
+};
