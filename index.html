@@ -3,24 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mercado Stock - Controle de Estoque</title>
+  <title>Controle de Estoque</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div id="loadingScreen" class="loading-screen">
-    <div class="loading-box">
-      <div class="spinner"></div>
-      <h2>Carregando sistema...</h2>
-      <p>Preparando o painel do mercado</p>
-    </div>
-  </div>
-
-  <section id="loginScreen" class="screen hidden">
+  <div id="loginScreen" class="screen active">
     <div class="login-card">
-      <div class="login-top">
-        <h1>Mercado Stock</h1>
-        <p>Sistema de estoque e caixa</p>
+      <h1>Controle de Estoque</h1>
+      <p class="subtitle">Acesse o sistema</p>
+
+      <div class="demo-box">
+        <strong>Login de teste</strong>
+        <span>Usuário: admin</span>
+        <span>Senha: 1234</span>
       </div>
 
       <form id="loginForm" class="login-form">
@@ -36,234 +32,152 @@
 
         <button type="submit" class="btn btn-primary">Entrar</button>
       </form>
-
-      <p class="login-tip">Usuário: <strong>admin</strong> | Senha: <strong>1234</strong></p>
-      <p id="loginMessage" class="message"></p>
     </div>
-  </section>
+  </div>
 
-  <div id="appScreen" class="app hidden">
-    <aside class="sidebar">
+  <div id="appScreen" class="screen">
+    <header class="topbar">
       <div>
-        <div class="brand">
-          <div class="brand-icon">🛒</div>
-          <div>
-            <h2>Mercado Stock</h2>
-            <p>Painel do mercado</p>
-          </div>
-        </div>
-
-        <nav class="menu">
-          <button class="menu-btn active">Estoque</button>
-          <button class="menu-btn" type="button">Produtos</button>
-          <button class="menu-btn" type="button">Relatórios</button>
-        </nav>
-
-        <div class="summary-card">
-          <h3>Resumo</h3>
-          <p>Total de produtos <strong id="totalProdutos">0</strong></p>
-          <p>Itens em estoque <strong id="totalQuantidade">0</strong></p>
-          <p>Valor total <strong id="valorTotal">R$ 0,00</strong></p>
-          <p>Baixo estoque <strong id="baixoEstoque">0</strong></p>
-        </div>
-
-        <div class="sidebar-actions">
-          <button id="btnExportCsv" class="btn btn-secondary">Exportar CSV</button>
-
-          <label for="csvFile" class="btn btn-secondary file-label">Importar CSV</label>
-          <input type="file" id="csvFile" accept=".csv" hidden />
-
-          <button id="btnLimparTudo" class="btn btn-danger">Limpar tudo</button>
-        </div>
+        <h1>Controle de Estoque</h1>
+        <p class="subtitle">Gerencie os produtos do mercado</p>
       </div>
 
-      <button id="logoutBtn" class="btn btn-outline">Sair</button>
-    </aside>
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" onclick="exportarCSV()">Exportar CSV</button>
 
-    <main class="content">
-      <header class="topbar">
-        <div>
-          <h1>Controle de Estoque</h1>
-          <p>Gerencie produtos, valores, estoque e movimentações</p>
+        <label class="btn btn-secondary file-label">
+          Importar CSV
+          <input type="file" id="importarCsv" accept=".csv" onchange="importarCSV(event)" hidden />
+        </label>
+
+        <button class="btn btn-danger" onclick="limparTudo()">Limpar Tudo</button>
+        <button class="btn btn-dark" onclick="logout()">Sair</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="cards-grid">
+        <div class="card stat-card">
+          <span class="stat-label">Total de Produtos</span>
+          <strong id="totalProdutos">0</strong>
         </div>
-      </header>
 
-      <section class="card">
-        <div class="section-header">
-          <h2>Cadastrar produto</h2>
-          <span class="badge">Tema claro</span>
+        <div class="card stat-card">
+          <span class="stat-label">Quantidade em Estoque</span>
+          <strong id="totalQuantidade">0</strong>
         </div>
 
-        <form id="productForm" class="product-form">
-          <div class="field">
-            <label for="nome">Nome do produto</label>
-            <input type="text" id="nome" placeholder="Ex: Arroz 5kg" required />
-          </div>
+        <div class="card stat-card">
+          <span class="stat-label">Valor Total em Estoque</span>
+          <strong id="valorTotal">R$ 0,00</strong>
+        </div>
 
-          <div class="field">
-            <label for="categoria">Categoria</label>
-            <input type="text" id="categoria" placeholder="Ex: Mercearia" required />
-          </div>
-
-          <div class="field">
-            <label for="quantidade">Quantidade</label>
-            <input type="number" id="quantidade" min="0" placeholder="0" required />
-          </div>
-
-          <div class="field">
-            <label for="valor">Preço unitário</label>
-            <input type="number" id="valor" min="0" step="0.01" placeholder="0.00" required />
-          </div>
-
-          <div class="field">
-            <label for="codigo">Código / NFC</label>
-            <input type="text" id="codigo" placeholder="Ex: 789000111222" required />
-          </div>
-
-          <div class="field">
-            <label for="estoqueMinimo">Estoque mínimo</label>
-            <input type="number" id="estoqueMinimo" min="0" placeholder="5" required />
-          </div>
-
-          <div class="form-action">
-            <button type="submit" class="btn btn-primary">Adicionar produto</button>
-          </div>
-        </form>
-
-        <p id="appMessage" class="message"></p>
+        <div class="card stat-card">
+          <span class="stat-label">Estoque Baixo</span>
+          <strong id="estoqueBaixo">0</strong>
+        </div>
       </section>
 
-      <section class="grid-cards">
-        <div class="card stat-card">
-          <h3>Produtos cadastrados</h3>
-          <strong id="statProdutos">0</strong>
+      <section class="grid-main">
+        <div class="card">
+          <h2>Cadastrar / Editar Produto</h2>
+
+          <form id="produtoForm" class="produto-form">
+            <input type="hidden" id="editIndex" value="" />
+
+            <div class="field">
+              <label for="nomeProduto">Nome do Produto</label>
+              <input type="text" id="nomeProduto" placeholder="Ex: Arroz 5kg" required />
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="quantidadeProduto">Quantidade</label>
+                <input type="number" id="quantidadeProduto" min="0" step="1" placeholder="0" required />
+              </div>
+
+              <div class="field">
+                <label for="valorProduto">Valor (R$)</label>
+                <input type="number" id="valorProduto" min="0" step="0.01" placeholder="0.00" required />
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="btnSalvarProduto">Salvar Produto</button>
+              <button type="button" class="btn btn-secondary" onclick="cancelarEdicao()">Cancelar</button>
+            </div>
+          </form>
         </div>
 
-        <div class="card stat-card">
-          <h3>Quantidade total</h3>
-          <strong id="statQuantidade">0</strong>
-        </div>
+        <div class="card">
+          <h2>Buscar Produto</h2>
 
-        <div class="card stat-card">
-          <h3>Patrimônio em estoque</h3>
-          <strong id="statValor">R$ 0,00</strong>
-        </div>
+          <div class="field">
+            <label for="buscaProduto">Pesquisar por nome</label>
+            <input
+              type="text"
+              id="buscaProduto"
+              placeholder="Digite para buscar..."
+              oninput="renderizarProdutos()"
+            />
+          </div>
 
-        <div class="card stat-card alert-card">
-          <h3>Itens com baixo estoque</h3>
-          <strong id="statBaixoEstoque">0</strong>
+          <div class="legend-box">
+            <span><span class="legend-dot low"></span> Estoque baixo (até 5)</span>
+            <span><span class="legend-dot normal"></span> Estoque normal</span>
+          </div>
         </div>
       </section>
 
       <section class="charts-grid">
         <div class="card">
-          <div class="section-header">
-            <h2>Gráfico de quantidades</h2>
+          <h2>Gráfico de Quantidade por Produto</h2>
+          <div class="chart-wrap">
+            <canvas id="graficoQuantidade"></canvas>
           </div>
-          <canvas id="graficoQuantidade"></canvas>
+        </div>
+
+        <div class="card">
+          <h2>Gráfico de Valor por Produto</h2>
+          <div class="chart-wrap">
+            <canvas id="graficoValor"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid-main">
+        <div class="card">
+          <div class="section-header">
+            <h2>Lista de Produtos</h2>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th>Quantidade</th>
+                  <th>Valor Unitário</th>
+                  <th>Valor Total</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="listaProdutos"></tbody>
+            </table>
+          </div>
         </div>
 
         <div class="card">
           <div class="section-header">
-            <h2>Gráfico de valores</h2>
-          </div>
-          <canvas id="graficoValor"></canvas>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="table-toolbar">
-          <div>
-            <h2>Produtos cadastrados</h2>
-            <p>Lista completa do estoque do mercado</p>
+            <h2>Histórico</h2>
+            <button class="btn btn-secondary btn-small" onclick="limparHistorico()">Limpar Histórico</button>
           </div>
 
-          <div class="toolbar-right">
-            <input type="text" id="searchInput" placeholder="Pesquisar produto..." />
-            <select id="sortSelect">
-              <option value="nome">Ordenar por nome</option>
-              <option value="quantidade">Ordenar por quantidade</option>
-              <option value="valor">Ordenar por valor</option>
-            </select>
-          </div>
+          <ul id="listaHistorico" class="historico-lista"></ul>
         </div>
-
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>Categoria</th>
-                <th>Código/NFC</th>
-                <th>Quantidade</th>
-                <th>Preço</th>
-                <th>Total</th>
-                <th>Mínimo</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="productTableBody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="section-header">
-          <h2>Histórico de movimentações</h2>
-        </div>
-
-        <div id="historicoLista" class="history-list"></div>
       </section>
     </main>
-  </div>
-
-  <div id="editModal" class="modal hidden">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h2>Editar produto</h2>
-        <button id="closeModalBtn" class="close-btn" type="button">&times;</button>
-      </div>
-
-      <form id="editForm" class="edit-form">
-        <input type="hidden" id="editIndex" />
-
-        <div class="field">
-          <label for="editNome">Nome do produto</label>
-          <input type="text" id="editNome" required />
-        </div>
-
-        <div class="field">
-          <label for="editCategoria">Categoria</label>
-          <input type="text" id="editCategoria" required />
-        </div>
-
-        <div class="field">
-          <label for="editQuantidade">Quantidade</label>
-          <input type="number" id="editQuantidade" min="0" required />
-        </div>
-
-        <div class="field">
-          <label for="editValor">Preço unitário</label>
-          <input type="number" id="editValor" min="0" step="0.01" required />
-        </div>
-
-        <div class="field">
-          <label for="editCodigo">Código / NFC</label>
-          <input type="text" id="editCodigo" required />
-        </div>
-
-        <div class="field">
-          <label for="editEstoqueMinimo">Estoque mínimo</label>
-          <input type="number" id="editEstoqueMinimo" min="0" required />
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" id="cancelModalBtn" class="btn btn-outline">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar alterações</button>
-        </div>
-      </form>
-    </div>
   </div>
 
   <script src="script.js"></script>
